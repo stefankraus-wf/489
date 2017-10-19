@@ -62,35 +62,11 @@ void main(int argc, char *argv[]){
 
   while(1){
     consock = accept(sersock, (struct sockaddr *) &clientaddr, &len);
-
-    printf("Connection Accepted\n");
-
+    printf("Connection Accepted\n");har *uptime = "/bin/uptime";
     valread = read(consock, buffer, sizeof(buffer));
     buffer[valread] = '\0';
     printf("%s\n", buffer);
-
-    pid = fork();
-
-    if(pid > 0){
-      //child
-      printf("Child\n");
-      int numBytes = read(pipe[0], sendToYazan, sizeof(sendToYazan));
-      valwrite = write(consock, sendToYazan, strlen(sendToYazan));
-      wait(NULL);
-
-    }
-    else if(pid == 0){
-      //parent
-      printf("Parent\n");
-      dup2 (pipe[1], STDOUT_FILENO);
-      close(pipe[0]);
-      close(pipe[1]);
-      execl(uptime, "uptime", NULL);
-
-    }
-    else{
-      perror("Child not created:");
-    }
+    valwrite = write(consock, sendToYazan, strlen(sendToYazan));
     close(consock);
   }
 
