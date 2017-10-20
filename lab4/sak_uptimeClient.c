@@ -12,14 +12,6 @@
 #define HOSTNAME "127.0.0.1"
 #define PORT     1337
 
-/*
- * error - wrapper for perror
- */
-void error(char *msg) {
-    perror(msg);
-    exit(0);
-}
-
 int main(int argc, char **argv) {
     int sockfd, port_number, n;
     struct sockaddr_in serveraddr;
@@ -38,32 +30,37 @@ int main(int argc, char **argv) {
 
     /* create socket */
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-        error("ERROR opening socket");
+    if (sockfd < 0){
+        perror("ERROR opening socket");
+        exit(1);
+      }
 
     /* gethostbyname: get the server's DNS entry */
     server = gethostbyname(hostname);
     if (server == NULL) {
         fprintf(stderr,"ERROR, no such host as %s\n", hostname);
-        exit(0);
+        exit(1);
     }
 
     /* build the server's Internet address */
-    bzero((char *) &serveraddr, sizeof(serveraddr));
+    memset((char *) &serveraddr, '\0', sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr,
-	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
+    strcpy((char *)server->h_addr, (char *)&serveraddr.sin_addr.s_addr);
     serveraddr.sin_port = htons(port_number);
 
     /* connect: create a connection with the server */
-    if (connect(sockfd, &serveraddr, sizeof(serveraddr)) < 0)
-      error("ERROR connecting");
+    if (connect(sockfd, &serveraddr, sizeof(serveraddr)) < 0){
+      perror("ERROR connecting");
+      exit(1);
+    }
 
     /* print the server's reply */
-    bzero(buf, BUFSIZE);
+    memset(buf, '\0', BUFSIZE);
     n = read(sockfd, buf, BUFSIZE);
-    if (n < 0)
-      error("ERROR reading from socket");
+    if (n < 0){
+      perror("ERROR reading from socket");
+      exit(1);
+    }
     printf("%s\n", buf);
     close(sockfd);
     return 0;

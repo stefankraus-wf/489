@@ -1,8 +1,3 @@
-/*
- * tcpserver.c - A simple TCP echo server
- * usage: tcpserver <port>
- */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -16,23 +11,15 @@
 #define BUFSIZE 1024
 #define PORT 1337
 
-/*
- * error - wrapper for perror
- */
-void error(char *msg) {
-  perror(msg);
-  exit(1);
-}
 
 int main(int argc, char **argv) {
   int parentfd; /* parent socket */
   int childfd; /* child socket */
-  int portno; /* port to listen on */
-  int clientlen; /* byte size of client's address */
+  int port_number; /* port to listen on */
+  unsigned int clientlen; /* byte size of client's address */
   struct sockaddr_in serveraddr; /* server's addr */
   struct sockaddr_in clientaddr; /* client addr */
   struct hostent *hostp; /* client host info */
-  char buf[BUFSIZE]; /* message buffer */
   char *hostaddrp; /* dotted decimal host addr string */
   int optval; /* flag value for setsockopt */
   int n; /* message byte size */
@@ -41,17 +28,19 @@ int main(int argc, char **argv) {
    * check command line arguments
    */
   if (argc == 2) {
-    portno = atoi(argv[1]);
-  } else {
-    portno = PORT;
+    port_number = atoi(argv[1]);
+  } else { // fall back to default
+    port_number = PORT;
   }
 
   /*
    * socket: create the parent socket
    */
-  parentfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (parentfd < 0)
-    error("ERROR opening socket");
+  parentfd = socket(PF_INET, SOCK_STREAM, 0);
+  if (parentfd < 0){
+    perror("ERROR opening socket");
+    exit(1);
+  }
 
   /* setsockopt: Handy debugging trick that lets
    * us rerun the server immediately after we kill it;
@@ -65,59 +54,59 @@ int main(int argc, char **argv) {
   /*
    * build the server's Internet address
    */
-  bzero((char *) &serveraddr, sizeof(serveraddr));
+  memset((char *) &serveraddr, '\0', sizeof(serveraddr));
 
-  /* this is an Internet address */
-  serveraddr.sin_family = AF_INET;
-
-  /* let the system figure out our IP address */
+  serveraddr.sin_family = PF_INET;
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  serveraddr.sin_port = htons((unsigned short)port_number);
 
-  /* this is the port we will listen on */
-  serveraddr.sin_port = htons((unsigned short)portno);
-
-  /*
-   * bind: associate the parent socket with a port
-   */
-  if (bind(parentfd, (struct sockaddr *) &serveraddr,
-	   sizeof(serveraddr)) < 0)
-    error("ERROR on binding");
+  if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0){
+    perror("ERROR on binding");
+    exit(1);
+  }
 
   /*
    * listen: make this socket ready to accept connection requests
    */
-  if (listen(parentfd, 5) < 0) /* allow 5 requests to queue up */
-    error("ERROR on listen");
+  if (listen(parentfd, 5) < 0){ /* allow 5 requests to queue up */
+    perror("ERROR on listen");
+    exit(1);
+  }
 
-  /*
-   * main loop: wait for a connection request, echo input line,
-   * then close connection.
-   */
+  printf("Server Listening on port %d\n", port_number);
+
   clientlen = sizeof(clientaddr);
-  while (1) {
+
+
+  while (1) { // loop forever
 
     /*
      * accept: wait for a connection request
      */
     childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
-    if (childfd < 0)
-      error("ERROR on accept");
+    if (childfd < 0){
+      perror("ERROR on accept");
+      exit(1);
+    }
 
     /*
-     * gethostbyaddr: determine who sent the message
+     * gethostbyaddr: determine who sent the message (debugging only)
      */
     hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr,
 			  sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-    if (hostp == NULL)
-      error("ERROR on gethostbyaddr");
+    if (hostp == NULL){
+      perror("ERROR on gethostbyaddr");
+      exit(1);
+    }
     hostaddrp = inet_ntoa(clientaddr.sin_addr);
-    if (hostaddrp == NULL)
-      error("ERROR on inet_ntoa\n");
-    printf("server established connection with %s (%s)\n",
-	   hostp->h_name, hostaddrp);
+    if (hostaddrp == NULL){
+      perror("ERROR on inet_ntoa\n");
+      exit(1);
+    }
+    printf("server connected with %s (%s)\n", hostp->h_name, hostaddrp);
 
     /*
-    * uptime: get uptime of server
+    * get uptime of server
     */
     char uptime[1024];
     FILE *fp = popen("uptime", "r");
@@ -126,12 +115,17 @@ int main(int argc, char **argv) {
     pclose(fp);
 
     /*
-     * write: echo the input string back to the client
+     * write the uptime to the socket
      */
     n = write(childfd, uptime, strlen(uptime));
-    if (n < 0)
-      error("ERROR writing to socket");
+    if (n < 0){
+      perror("ERROR writing to socket");
+      exit(1);
+    }
 
+    /*
+    * close port
+    */
     close(childfd);
   }
 }
