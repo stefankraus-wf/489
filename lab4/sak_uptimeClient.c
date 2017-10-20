@@ -12,6 +12,15 @@
 #define HOSTNAME "127.0.0.1"
 #define PORT     1337
 
+/*
+* Simple TCP Client.
+* Main flow:
+* 1. Set up the socket
+* 2. Accept input from socket
+* 3. Print and exit.
+* This client is fairly agnostic as to what the server returns as long as
+*  it fits in the buffer. 
+*/
 int main(int argc, char **argv) {
     int sockfd, port_number, n;
     struct sockaddr_in serveraddr;
@@ -29,7 +38,7 @@ int main(int argc, char **argv) {
     }
 
     /* create socket */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(PF_INET, SOCK_STREAM, 0);
     if (sockfd < 0){
         perror("ERROR opening socket");
         exit(1);

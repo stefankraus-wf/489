@@ -12,17 +12,26 @@
 #define PORT 1337
 
 
+/*
+* Simple TCP server. Accepts a connection, then writes the current uptime of
+* the machine the server is running on - NOT the uptime of the server process.
+* General Process Outline:
+* 1. Set up the accepting socket
+* 2. Start the infinite accept connection loop
+* 3. On connection, get current uptime from system
+* 4. Write current uptime to connected socket
+* 5. Close accepted socket, continue accepting loop
+*/
 int main(int argc, char **argv) {
   int parentfd; /* parent socket */
   int childfd; /* child socket */
-  int port_number; /* port to listen on */
+  int port_number; /* port to listen on, default 1337 */
   unsigned int clientlen; /* byte size of client's address */
   struct sockaddr_in serveraddr; /* server's addr */
   struct sockaddr_in clientaddr; /* client addr */
   struct hostent *hostp; /* client host info */
-  char *hostaddrp; /* dotted decimal host addr string */
+  char *host_address; /* host IP string */
   int optval; /* flag value for setsockopt */
-  int n; /* message byte size */
 
   /*
    * check command line arguments
@@ -46,6 +55,8 @@ int main(int argc, char **argv) {
    * us rerun the server immediately after we kill it;
    * otherwise we have to wait about 20 secs.
    * Eliminates "ERROR on binding: Address already in use" error.
+   * NOTE: copied directly from internet, has no direct bearing on the
+   *  assignment, is only for convenience.
    */
   optval = 1;
   setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR,
@@ -98,12 +109,12 @@ int main(int argc, char **argv) {
       perror("ERROR on gethostbyaddr");
       exit(1);
     }
-    hostaddrp = inet_ntoa(clientaddr.sin_addr);
-    if (hostaddrp == NULL){
+    host_address = inet_ntoa(clientaddr.sin_addr);
+    if (host_address == NULL){
       perror("ERROR on inet_ntoa\n");
       exit(1);
     }
-    printf("server connected with %s (%s)\n", hostp->h_name, hostaddrp);
+    printf("server connected with %s (%s)\n", hostp->h_name, host_address);
 
     /*
     * get uptime of server
@@ -116,7 +127,8 @@ int main(int argc, char **argv) {
 
     /*
      * write the uptime to the socket
-     */
+    */
+    int n;
     n = write(childfd, uptime, strlen(uptime));
     if (n < 0){
       perror("ERROR writing to socket");
