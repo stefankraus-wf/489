@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-//30542
 bool errorCalc(int rate);
 
 void main(int argc, char *argv[]){
@@ -54,6 +53,7 @@ void main(int argc, char *argv[]){
     printf("Error: improper use:\nruptimeClient <Source Address> <Source Port> <Destination Address> <Destination Port> <Loss Rate>\n");
     exit(1);
   }
+  //Takes loss rate from command line
   lossRate = atoi(argv[5]);
 
 
@@ -63,13 +63,16 @@ void main(int argc, char *argv[]){
   }
 
   serveraddr.sin_family = AF_INET;
-  serveraddr.sin_port = htons(atoi(argv[2])); //ADD port number
+  //Port from command line
+  serveraddr.sin_port = htons(atoi(argv[2]));
   //serveraddr.sin_addr.s_addr = inet_addr(IP_ADDRESS);
+
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+  //Address to send to from command line
   sendAddr.sin_family = AF_INET;
-  sendAddr.sin_port = htons(atoi(argv[4]));
-  sendAddr.sin_addr.s_addr = inet_addr(argv[3]);
+  sendAddr.sin_port = htons(atoi(argv[4])); //port from command line
+  sendAddr.sin_addr.s_addr = inet_addr(argv[3]); //IP from command line
 
 
 
@@ -79,25 +82,28 @@ void main(int argc, char *argv[]){
   }
 
 
-  //listen(sersock, 10);
+
 
   char buffer[2048];
-  //char *uptime = "/bin/uptime";
+
 
   memset(buffer, 0, 2048);
 
   while(1){
-    //consock = accept(sersock, (struct sockaddr *) &clientaddr, &len);
-    //printf("Connection Accepted\n");har *uptime = "/bin/uptime";
+    //Waits until received packets & writes to buffer
     printf("Waiting...\n");
     if( (valread = recvfrom(sersock, buffer, 2048, 0, (struct sockaddr *) &clientaddr, &len))< 0){
       perror("recvfrom() error: \n");
       exit(1);
     }
+
     buffer[valread] = '\0';
     printf("%d\n",valread);
     printf("Buffer: %s\n", buffer);
+    //Calculates error if any, & drops packet if within the error margin
     lossPacket = errorCalc(lossRate);
+
+    //Sends packet to sendAddr if no error for that packet
     if(!lossPacket){
       if(sendto(sersock, buffer, valread, 0, (struct sockaddr *) &sendAddr, len2) < 0){
         perror("sendto() error: \n");
@@ -110,6 +116,7 @@ void main(int argc, char *argv[]){
   close(sersock);
 }
 
+//Calculates error by getting random number 0-100 and comparing to error rate from the command line
 bool errorCalc(int rate){
     srand(time(NULL));
     int numRand = rand() % (100 + 1 - 0) + 0;
