@@ -6,7 +6,7 @@
 
 #define BUFFER_SIZE 256
 #define SERVER_PORT_NUMBER 30542
-#define SERVER_IP = "XXX"
+#define SERVER_IP = "192.168.254.5"
 
 struct sockaddr_in remoteaddr;
 
